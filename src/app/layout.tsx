@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head />
-      <body className="font-sans antialiased flex min-h-screen flex-col">
+      <body className="font-sans antialiased flex min-h-screen flex-col bg-background">
         <Header />
         <main className="flex-1 w-full">{children}</main>
         <Toaster />
