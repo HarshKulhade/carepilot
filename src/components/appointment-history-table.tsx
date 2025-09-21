@@ -15,9 +15,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Circle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAppointments } from '@/lib/firestore';
 import type { Appointment } from '@/lib/types';
@@ -100,6 +101,20 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => alert(`Viewing details for ${appt.appointmentId}`)}>
                             View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                            <Circle className="mr-2 h-3 w-3 text-green-500 fill-green-500" />
+                            Appointed
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                             <Circle className="mr-2 h-3 w-3 text-yellow-500 fill-yellow-500" />
+                            On Hold
+                          </DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                             <Circle className="mr-2 h-3 w-3 text-red-500 fill-red-500" />
+                            Remove
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
