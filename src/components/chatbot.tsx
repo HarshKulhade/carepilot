@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
@@ -58,7 +59,7 @@ export function Chatbot() {
       }
     };
     if (messages.length === 0) {
-      addMessage('assistant', "Hi! I'm your clinic assistant. To start, could you please provide your full name?");
+      getInitialQuestion();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
