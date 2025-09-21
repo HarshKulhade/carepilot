@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -21,13 +22,13 @@ export default function AdminLoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [setIsAuthenticated] = useLocalStorage('admin-auth', false, true);
+  const [, setIsAuthenticated] = useLocalStorage('admin-auth', false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, you'd have a proper auth system.
     // Here, we're just simulating it.
-    if (email === 'admin@clinic.com' && password === 'password') {
+    if (email === 'clinicadmin@gmail.com' && password === 'admin123') {
       setIsAuthenticated(true);
       toast({
         title: 'Login Successful',
@@ -59,7 +60,7 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@clinic.com"
+                placeholder="clinicadmin@gmail.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -70,7 +71,7 @@ export default function AdminLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="password"
+                placeholder="admin123"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
