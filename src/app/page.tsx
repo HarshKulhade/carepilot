@@ -23,10 +23,10 @@ export default function Home() {
               </div>
             </div>
             {heroImage && (
-              <div className="mx-auto flex justify-center">
+              <div className="mx-auto flex justify-center group">
                 <Image
                   alt="Hero"
-                  className="overflow-hidden rounded-xl object-cover"
+                  className="overflow-hidden rounded-xl object-cover transform transition-all duration-500 ease-in-out group-hover:scale-105 group-hover:shadow-2xl"
                   src={heroImage.imageUrl}
                   width={600}
                   height={338}

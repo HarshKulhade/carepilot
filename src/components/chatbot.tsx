@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { chatbotAppointmentBooking, ChatbotAppointmentBookingInput } from '@/ai/flows/chatbot-appointment-booking';
+import { chatbotAppointmentBooking, getNextQuestion, ChatbotAppointmentBookingInput } from '@/ai/flows/chatbot-appointment-booking';
 import type { Appointment } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { cn } from '@/lib/utils';
@@ -19,35 +19,40 @@ type Message = {
   content: string;
 };
 
-const questions = [
-  "To start, could you please provide your full name?",
-  "Great. What's the best phone number to reach you at?",
-  "Thank you. Could you briefly describe your medical problem or concern?",
-  "Understood. What is your preferred date and time for the appointment?",
-];
-
 export function Chatbot() {
   const router = useRouter();
   const { toast } = useToast();
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'init',
-      role: 'assistant',
-      content: "Hi! I’m your clinic assistant. I can help you book an appointment.",
-    },
-    {
-      id: 'q0',
-      role: 'assistant',
-      content: questions[0],
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
-  const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<Partial<ChatbotAppointmentBookingInput>>({});
   const [isTyping, setIsTyping] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const addMessage = (role: 'user' | 'assistant', content: string) => {
+    setMessages(prev => [...prev, { id: `${role}-${Date.now()}`, role, content }]);
+  };
+
+  useEffect(() => {
+    // Initial greeting from the assistant
+    const getInitialQuestion = async () => {
+        setIsTyping(true);
+        try {
+            const result = await getNextQuestion({ history: [], currentData: {} });
+            addMessage('assistant', "Hi! I’m your clinic assistant. I can help you book an appointment.");
+            if (result.nextQuestion) {
+                addMessage('assistant', result.nextQuestion);
+            }
+        } catch (error) {
+            console.error("Failed to get initial question:", error);
+            addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
+        } finally {
+            setIsTyping(false);
+        }
+    };
+    getInitialQuestion();
+  }, []);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -59,47 +64,46 @@ export function Chatbot() {
     e.preventDefault();
     if (!userInput.trim() || isTyping) return;
 
-    const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', content: userInput };
-    setMessages(prev => [...prev, userMessage]);
-    
     const currentInput = userInput;
+    addMessage('user', currentInput);
     setUserInput('');
+    setIsTyping(true);
 
     if (isConfirming) {
         handleConfirmation(currentInput);
         return;
     }
-    
-    const newFormData = { ...formData };
-    const dataKeys: (keyof ChatbotAppointmentBookingInput)[] = ['patientName', 'phoneNumber', 'problem', 'preferredTimeSlot'];
-    newFormData[dataKeys[step]] = currentInput;
-    setFormData(newFormData);
 
-    const nextStep = step + 1;
-    setStep(nextStep);
+    try {
+        const history = messages.map(({ role, content }) => ({ role, content }));
+        history.push({ role: 'user', content: currentInput });
 
-    setIsTyping(true);
-    setTimeout(() => {
-      if (nextStep < questions.length) {
-        const botMessage: Message = { id: `q-${nextStep}`, role: 'assistant', content: questions[nextStep] };
-        setMessages(prev => [...prev, botMessage]);
-      } else {
-        const fullData = newFormData as ChatbotAppointmentBookingInput;
-        const summary = `Okay, I have the following details:\n\nName: ${fullData.patientName}\nPhone: ${fullData.phoneNumber}\nConcern: ${fullData.problem}\nTime: ${fullData.preferredTimeSlot}\n\nShall I go ahead and book this appointment for you? (yes/no)`;
-        const botMessage: Message = { id: 'confirm', role: 'assistant', content: summary };
-        setMessages(prev => [...prev, botMessage]);
-        setIsConfirming(true);
-      }
-      setIsTyping(false);
-    }, 1000);
+        const result = await getNextQuestion({ history, currentData: formData });
+        
+        const newFormData = { ...formData, ...result.updatedData };
+        setFormData(newFormData);
+
+        if (result.nextQuestion) {
+            addMessage('assistant', result.nextQuestion);
+        }
+
+        if (result.isComplete) {
+            setIsConfirming(true);
+        }
+
+    } catch (error) {
+        console.error("Error processing user input:", error);
+        addMessage('assistant', "I'm sorry, I'm having trouble understanding. Could you please rephrase?");
+    } finally {
+        setIsTyping(false);
+    }
   };
 
   const handleConfirmation = async (confirmation: string) => {
     setIsConfirming(false);
     if (confirmation.toLowerCase().trim().startsWith('yes')) {
+        addMessage('assistant', "Perfect! Booking your appointment now...");
         setIsTyping(true);
-        const processingMessage: Message = { id: 'processing', role: 'assistant', content: "Perfect! Booking your appointment now..." };
-        setMessages(prev => [...prev, processingMessage]);
 
         try {
             const result = await chatbotAppointmentBooking(formData as ChatbotAppointmentBookingInput);
@@ -112,10 +116,12 @@ export function Chatbot() {
                 createdAt: new Date().toISOString(),
             };
             
+            // Directly write to localStorage before redirecting
+            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+            localStorage.setItem('appointments', JSON.stringify([...currentAppointments, newAppointment]));
             setAppointments(prev => [...prev, newAppointment]);
             
-            const finalMessage: Message = { id: `final-${result.appointmentId}`, role: 'assistant', content: `${result.confirmationMessage} I'm redirecting you to the confirmation page.` };
-            setMessages(prev => [...prev, finalMessage]);
+            addMessage('assistant', `${result.confirmationMessage} I'm redirecting you to the confirmation page.`);
             
             setTimeout(() => {
                 router.push(`/confirmation/${result.appointmentId}`);
@@ -123,22 +129,29 @@ export function Chatbot() {
 
         } catch (error) {
             console.error('Booking failed:', error);
-            const errorMessage: Message = { id: 'error', role: 'assistant', content: "I'm sorry, but something went wrong while booking. Please try again later." };
-            setMessages(prev => [...prev, errorMessage]);
+            addMessage('assistant', "I'm sorry, but something went wrong while booking. Please try again later.");
             toast({
                 variant: 'destructive',
                 title: 'Booking Failed',
                 description: 'Could not complete the appointment booking.',
             });
+             setIsTyping(false);
+        }
+    } else {
+        addMessage('assistant', "No problem. Let's start over.");
+        setFormData({});
+        setIsTyping(true);
+        // Reset the conversation
+        try {
+          const result = await getNextQuestion({ history: [], currentData: {} });
+          if (result.nextQuestion) {
+              addMessage('assistant', result.nextQuestion);
+          }
+        } catch (error) {
+           addMessage('assistant', "Let's try that again. What is your full name?");
         } finally {
             setIsTyping(false);
         }
-    } else {
-        const restartMessage: Message = { id: 'restart', role: 'assistant', content: "No problem. Let's start over." };
-        const q0Message: Message = { id: 'q0-restart', role: 'assistant', content: questions[0] };
-        setMessages(prev => [...prev, restartMessage, q0Message]);
-        setStep(0);
-        setFormData({});
     }
   }
 
@@ -181,6 +194,12 @@ export function Chatbot() {
                 </div>
               </div>
             )}
+            {messages.length === 0 && !isTyping && (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                    <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">The AI assistant is getting ready...</p>
+                </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -190,7 +209,7 @@ export function Chatbot() {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             placeholder="Type your message..."
-            disabled={isTyping}
+            disabled={isTyping || messages.length === 0}
             aria-label="Chat input"
           />
           <Button type="submit" size="icon" disabled={isTyping || !userInput.trim()}>
