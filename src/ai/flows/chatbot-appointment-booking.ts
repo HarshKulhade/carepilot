@@ -15,12 +15,14 @@ const ChatbotAppointmentBookingInputSchema = z.object({
   patientName: z.string().describe('The full name of the patient.'),
   phoneNumber: z
     .string()
-    .describe('The patient phone number for contact and confirmation.'),
+    .length(10, "Phone number must be 10 digits.")
+    .describe('The patient\'s 10-digit phone number for contact and confirmation.'),
   problem: z
     .string()
     .describe('A brief description of the patient medical problem or concern.'),
   preferredTimeSlot: z
     .string()
+
     .describe('The preferred date and time for the appointment.'),
   isEmergency: z.boolean().optional().describe('Whether the appointment is an emergency.'),
 });
@@ -112,7 +114,7 @@ const getNextQuestionPrompt = ai.definePrompt({
 
 You need to collect the following information:
 - Patient Name (patientName)
-- Phone Number (phoneNumber)
+- Phone Number (phoneNumber) - Must be exactly 10 digits.
 - Medical Problem/Concern (problem)
 - Preferred Time Slot (preferredTimeSlot) - This should include date and time.
 
@@ -129,6 +131,8 @@ If you have just collected a piece of information, acknowledge it briefly and na
 If the user provides multiple pieces of information at once, update all of them.
 Extract the relevant information from the user's last message and update the 'updatedData' field.
 
+When asking for the 'phoneNumber', if the user provides a number that is not 10 digits, you must ask again. For example: "Please provide a valid 10-digit phone number."
+
 When asking for the 'preferredTimeSlot', first check if the user is expressing urgency (e.g., "as soon as possible", "emergency", "urgent").
 If the user's response indicates an emergency:
 - Set 'isEmergency' to true.
@@ -142,12 +146,12 @@ For example, if the user says "tomorrow" for the date, and the time was "2:00 PM
 Context: {{{json context}}}
 
 If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. 
-If it is an emergency, the summary should reflect that. For example: "This seems to be an emergency. I have your name as John Doe, phone as 555-1234, and reason as 'severe chest pain'. I am marking this as an immediate emergency appointment. Is this correct?"
-For regular appointments: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
+If it is an emergency, the summary should reflect that. For example: "This seems to be an emergency. I have your name as John Doe, phone as 555-123-4567, and reason as 'severe chest pain'. I am marking this as an immediate emergency appointment. Is this correct?"
+For regular appointments: "Great, I have all the details. I've got your name as John Doe, phone as 555-123-4567, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
 
 If information is still missing, ask the next question and set 'isComplete' to false.
 For example, if 'patientName' is missing, you could ask: "To start, could you please provide your full name?"
-If 'patientName' is present but 'phoneNumber' is missing, you could ask: "Thanks, {{currentData.patientName}}. What's the best phone number to reach you at?"
+If 'patientName' is present but 'phoneNumber' is missing, you could ask: "Thanks, {{currentData.patientName}}. What's the best 10-digit phone number to reach you at?"
 `,
 });
 
