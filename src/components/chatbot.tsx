@@ -39,29 +39,28 @@ export function Chatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [localAppointments, setLocalAppointments] = useLocalStorage<Omit<Appointment, 'id' | 'status'>[]>('appointments', []);
+  const [localAppointments, setLocalAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   
   const addMessage = (role: 'user' | 'assistant', content: string, suggestions?: string[]) => {
     setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content, suggestions }]);
   };
 
   useEffect(() => {
-    // Initial greeting from the assistant
     const getInitialQuestion = async () => {
-        setIsTyping(true);
-        try {
-          const result = await getNextQuestion({ history: [], currentData: {} });
-          addMessage('assistant', result.nextQuestion, result.suggestions);
-        } catch (error) {
-          console.error("Failed to get initial question:", error);
-          addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
-        } finally {
-          setIsTyping(false);
+        if (messages.length === 0) {
+            setIsTyping(true);
+            try {
+                const result = await getNextQuestion({ history: [], currentData: {} });
+                addMessage('assistant', result.nextQuestion, result.suggestions);
+            } catch (error) {
+                console.error("Failed to get initial question:", error);
+                addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
+            } finally {
+                setIsTyping(false);
+            }
         }
     };
-     if (messages.length === 0) {
-        getInitialQuestion();
-    }
+    getInitialQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,17 +118,25 @@ export function Chatbot() {
         setIsTyping(true);
 
         try {
-            const result = await chatbotAppointmentBooking(formData as ChatbotAppointmentBookingInput);
+            const bookingInput = formData as ChatbotAppointmentBookingInput;
+            const result = await chatbotAppointmentBooking(bookingInput);
             
-            const newAppointment: Omit<Appointment, 'id' | 'status'> = {
-                ...(formData as ChatbotAppointmentBookingInput),
+            const partialAppointment: Omit<Appointment, 'id' | 'status'> = {
+                ...bookingInput,
                 confirmationMessage: result.confirmationMessage,
                 bookedVia: 'chatbot',
                 createdAt: new Date().toISOString(),
                 appointmentId: result.appointmentId,
+                isEmergency: bookingInput.isEmergency || false,
             };
 
-            const appointmentId = await addAppointment(newAppointment);
+            const docId = await addAppointment(partialAppointment);
+
+            const newAppointment: Appointment = {
+                ...partialAppointment,
+                id: docId,
+                status: 'pending',
+            };
 
             // Also save to local storage for non-admin history view
             setLocalAppointments([...localAppointments, newAppointment]);
@@ -137,7 +144,7 @@ export function Chatbot() {
             addMessage('assistant', `${result.confirmationMessage} I'll redirect you to the confirmation page.`);
             
             setTimeout(() => {
-                router.push(`/confirmation/${appointmentId}`);
+                router.push(`/confirmation/${docId}`);
             }, 2000);
 
         } catch (error) {
