@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     // In a real app, you'd have a proper auth system.
     // Here, we're just simulating it.
-    if (email === 'clinicadmin@gmail.com' && password === 'admin123') {
+    if (email === 'admin@clinic.com' && password === 'password') {
       setIsAuthenticated(true);
       toast({
         title: 'Login Successful',
@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="clinicadmin@gmail.com"
+                placeholder="admin@clinic.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="admin123"
+                placeholder="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
