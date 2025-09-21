@@ -12,7 +12,7 @@ export default function Home() {
         {/* Left Column */}
         <div className="flex flex-col">
           <div className="space-y-4 mb-10 text-center lg:text-left">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight">
               AI-Integrated <br /> Patient Manager
             </h1>
             <p className="max-w-lg text-lg text-muted-foreground mx-auto lg:mx-0">
