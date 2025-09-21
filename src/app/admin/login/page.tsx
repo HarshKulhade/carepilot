@@ -20,8 +20,8 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('admin@clinic.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = getAuth();
 
@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@clinic.com"
+                placeholder="m@example.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -74,7 +74,6 @@ export default function AdminLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
