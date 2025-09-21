@@ -13,7 +13,7 @@ export function AppointmentHistory({ appointments }: { appointments: Appointment
     return (
       <div className="flex flex-col items-center justify-center text-center py-20 rounded-lg border-2 border-dashed">
         <CalendarOff className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2 font-headline">No Appointments Found</h2>
+        <h2 className="text-2xl font-bold mb-2">No Appointments Found</h2>
         <p className="text-muted-foreground mb-6">You haven't booked any appointments yet.</p>
         <Button asChild>
           <Link href="/book">Book an Appointment</Link>
@@ -25,12 +25,12 @@ export function AppointmentHistory({ appointments }: { appointments: Appointment
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Your Appointments</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Your Appointments</h1>
         <p className="mt-2 text-lg text-muted-foreground">Here is a list of your past and upcoming appointments.</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedAppointments.map((appt) => (
-          <Card key={appt.id} className="flex flex-col">
+          <Card key={appt.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />

@@ -2,16 +2,16 @@
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { chatbotAppointmentBooking, getNextQuestion, ChatbotAppointmentBookingInput } from '@/ai/flows/chatbot-appointment-booking';
 import type { Appointment } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Message = {
   id: string;
@@ -19,11 +19,13 @@ type Message = {
   content: string;
 };
 
-// Simple utility to create unique enough IDs for this demo
 let messageIdCounter = 0;
 const getUniqueMessageId = (role: string) => {
-    return `${role}-${Date.now()}-${messageIdCounter++}`;
-}
+  const now = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  messageIdCounter++;
+  return `${role}-${now}-${messageIdCounter}-${random}`;
+};
 
 export function Chatbot() {
   const router = useRouter();
@@ -43,21 +45,20 @@ export function Chatbot() {
   useEffect(() => {
     // Initial greeting from the assistant
     const getInitialQuestion = async () => {
-        setIsTyping(true);
-        try {
-            const result = await getNextQuestion({ history: [], currentData: {} });
-            addMessage('assistant', "Hi! I’m your clinic assistant. I can help you book an appointment.");
-            if (result.nextQuestion) {
-                addMessage('assistant', result.nextQuestion);
-            }
-        } catch (error) {
-            console.error("Failed to get initial question:", error);
-            addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
-        } finally {
-            setIsTyping(false);
-        }
+      setIsTyping(true);
+      try {
+        const result = await getNextQuestion({ history: [], currentData: {} });
+        addMessage('assistant', "Hi! I'm your clinic assistant. Can I help you book an appointment?");
+      } catch (error) {
+        console.error("Failed to get initial question:", error);
+        addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
+      } finally {
+        setIsTyping(false);
+      }
     };
-    getInitialQuestion();
+    if (messages.length === 0) {
+      getInitialQuestion();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,12 +124,11 @@ export function Chatbot() {
                 createdAt: new Date().toISOString(),
             };
             
-            // Directly write to localStorage before redirecting
             const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]'));
             localStorage.setItem('appointments', JSON.stringify([...currentAppointments, newAppointment]));
             setAppointments(prev => [...prev, newAppointment]);
             
-            addMessage('assistant', `${result.confirmationMessage} I'm redirecting you to the confirmation page.`);
+            addMessage('assistant', `${result.confirmationMessage} I'll redirect you to the confirmation page.`);
             
             setTimeout(() => {
                 router.push(`/confirmation/${result.appointmentId}`);
@@ -148,7 +148,6 @@ export function Chatbot() {
         addMessage('assistant', "No problem. Let's start over.");
         setFormData({});
         setIsTyping(true);
-        // Reset the conversation
         try {
           const result = await getNextQuestion({ history: [], currentData: {} });
           if (result.nextQuestion) {
@@ -163,40 +162,41 @@ export function Chatbot() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto flex flex-col h-[70vh] min-h-[500px] shadow-2xl">
-      <CardHeader className="flex flex-row items-center gap-3">
-         <Sparkles className="h-6 w-6 text-primary" />
-        <CardTitle className="font-headline">Book with AI Assistant</CardTitle>
+    <Card className="w-full h-full mx-auto flex flex-col shadow-lg rounded-xl">
+      <CardHeader className="p-0 border-b">
+         <Tabs defaultValue="chat" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 rounded-t-xl rounded-b-none h-14">
+                <TabsTrigger value="chat" className="rounded-tl-xl text-base h-full">Chat</TabsTrigger>
+                <TabsTrigger value="voice" className="rounded-tr-xl text-base h-full" disabled>Voice</TabsTrigger>
+            </TabsList>
+            <div className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                    <p className="text-sm font-medium">Clinic Assistant</p>
+                </div>
+                <p className="text-sm text-muted-foreground">Chatbot</p>
+            </div>
+         </Tabs>
       </CardHeader>
       <CardContent className="flex-1 p-0 overflow-hidden">
-        <div className="h-full p-6 overflow-y-auto" ref={scrollAreaRef}>
-          <div className="space-y-6">
+        <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 400px)', minHeight: '300px'}}>
+          <div className="space-y-4">
             {messages.map((message) => (
-              <div key={message.id} className={cn('flex items-end gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                {message.role === 'assistant' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback><Bot className="h-5 w-5" /></AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={cn('max-w-[85%] rounded-lg p-3 text-sm whitespace-pre-wrap', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+              <div key={message.id} className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                <div className={cn(
+                    'max-w-[85%] rounded-lg p-3 text-sm whitespace-pre-wrap', 
+                    message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'
+                )}>
                  {message.content}
                 </div>
-                {message.role === 'user' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                  </Avatar>
-                )}
               </div>
             ))}
             {isTyping && (
-              <div className="flex items-end gap-3 justify-start">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback><Bot className="h-5 w-5" /></AvatarFallback>
-                </Avatar>
-                <div className="max-w-[75%] rounded-lg p-3 bg-muted">
-                    <div className="flex items-center gap-1">
-                        <span className="text-muted-foreground text-sm">Typing</span>
+              <div className="flex items-start gap-3 justify-start">
+                <div className="max-w-[75%] rounded-lg p-3 bg-muted rounded-bl-none">
+                    <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        <span className="text-muted-foreground text-sm">Typing...</span>
                     </div>
                 </div>
               </div>
@@ -210,14 +210,15 @@ export function Chatbot() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="p-4 border-t">
+      <CardFooter className="p-4 border-t bg-slate-50 rounded-b-xl">
         <form onSubmit={handleUserInput} className="flex w-full items-center space-x-2">
           <Input
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Enter your full name"
             disabled={isTyping || messages.length === 0}
             aria-label="Chat input"
+            className="border-gray-300 focus-visible:ring-primary"
           />
           <Button type="submit" size="icon" disabled={isTyping || !userInput.trim()}>
             <Send className="h-4 w-4" />

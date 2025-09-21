@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
+import { Inter } from 'next/font/google'
 import './globals.css';
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
+
 export const metadata: Metadata = {
-  title: 'MediAI Chat',
+  title: 'CarePilot',
   description: 'Book your appointments with ease using our AI assistant.',
 };
 
@@ -14,18 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="font-body antialiased flex min-h-screen flex-col">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head />
+      <body className="font-sans antialiased flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 w-full">{children}</main>
         <Toaster />
       </body>
     </html>

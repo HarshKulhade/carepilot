@@ -1,29 +1,32 @@
 import Link from 'next/link';
-import { Stethoscope } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const Logo = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="8" fill="#0091FF"/>
+  </svg>
+);
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2">
-          <Stethoscope className="h-6 w-6 text-primary" />
-          <span className="font-bold sm:inline-block font-headline">
-            MediAI Chat
+    <header className="bg-transparent">
+      <div className="container mx-auto flex h-20 items-center justify-between">
+        <Link href="/" className="flex items-center space-x-3">
+          <Logo />
+          <span className="font-bold text-xl text-gray-800">
+            CarePilot
           </span>
         </Link>
-        <nav className="flex items-center space-x-6 text-sm font-medium">
+        <nav className="flex items-center space-x-8 text-sm font-medium">
           <Link
-            href="/book"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
+            href="#"
+            className="transition-colors text-foreground/80 hover:text-foreground"
           >
-            Book Appointment
+            Features
           </Link>
-          <Link
-            href="/history"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
-          >
-            Appointment History
-          </Link>
+          <Button asChild>
+            <Link href="#">Admin</Link>
+          </Button>
         </nav>
       </div>
     </header>

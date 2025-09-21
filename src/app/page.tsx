@@ -1,92 +1,68 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import { MessageSquare, Calendar } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { MessageSquare, Mic, History } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Chatbot } from '@/components/chatbot';
+import { AppointmentHistoryTable } from '@/components/appointment-history-table';
 
 export default function Home() {
-  const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image');
-
   return (
-    <div className="flex flex-col items-center">
-      <section className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_500px] lg:gap-12 xl:grid-cols-[1fr_600px]">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                  Effortless Appointment Booking
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Welcome to MediAI Chat. Use our intelligent assistant to book your next appointment or manage your schedule.
-                </p>
-              </div>
-            </div>
-            {heroImage && (
-              <div className="mx-auto flex justify-center group">
-                <Image
-                  alt="Hero"
-                  className="overflow-hidden rounded-xl object-cover transform transition-all duration-500 ease-in-out group-hover:scale-105 group-hover:shadow-2xl"
-                  src={heroImage.imageUrl}
-                  width={600}
-                  height={338}
-                  data-ai-hint={heroImage.imageHint}
-                  priority
-                />
-              </div>
-            )}
+    <div className="container mx-auto py-8 lg:py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-24">
+        {/* Left Column */}
+        <div className="flex flex-col">
+          <div className="space-y-4 mb-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-gray-900">
+              AI-Integrated <br /> Patient Manager
+            </h1>
+            <p className="max-w-lg text-lg text-muted-foreground">
+              Book appointments via chat or voice, view history, and manage patient interactions with a friendly, clinic-grade experience.
+            </p>
           </div>
-        </div>
-      </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline">What would you like to do?</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Choose an option below to get started.
-              </p>
-            </div>
-          </div>
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:max-w-none lg:grid-cols-2 mt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
             <Link href="/book" className="h-full">
-              <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
-                <CardHeader>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <MessageSquare className="h-8 w-8 text-primary" />
-                    </div>
-                    <CardTitle className="text-2xl font-headline">Book via Chat</CardTitle>
+              <Card className="h-full text-center hover:shadow-lg transition-shadow">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <div className="bg-primary/10 p-3 rounded-full mb-2">
+                    <MessageSquare className="h-6 w-6 text-primary" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    Use our AI-powered chatbot to find a time that works for you and book your appointment in minutes.
-                  </CardDescription>
+                  <h3 className="font-semibold">Book via Chat</h3>
+                  <p className="text-sm text-muted-foreground">Fast & guided</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="#" className="h-full">
+               <Card className="h-full text-center hover:shadow-lg transition-shadow opacity-50 cursor-not-allowed">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <div className="bg-primary/10 p-3 rounded-full mb-2">
+                    <Mic className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold">Book via Voice</h3>
+                  <p className="text-sm text-muted-foreground">Hands-free</p>
                 </CardContent>
               </Card>
             </Link>
             <Link href="/history" className="h-full">
-              <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
-                <CardHeader>
-                  <div className="flex items-center gap-4">
-                    <div className="bg-accent/10 p-3 rounded-full">
-                      <Calendar className="h-8 w-8 text-accent" />
-                    </div>
-                    <CardTitle className="text-2xl font-headline">View History</CardTitle>
+              <Card className="h-full text-center hover:shadow-lg transition-shadow">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <div className="bg-primary/10 p-3 rounded-full mb-2">
+                    <History className="h-6 w-6 text-primary" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base">
-                    Review your past and upcoming appointments. Manage your schedule with ease.
-                  </CardDescription>
+                  <h3 className="font-semibold">History</h3>
+                  <p className="text-sm text-muted-foreground">All bookings</p>
                 </CardContent>
               </Card>
             </Link>
           </div>
+
+          <AppointmentHistoryTable />
         </div>
-      </section>
+
+        {/* Right Column */}
+        <div className="relative">
+          <Chatbot />
+        </div>
+      </div>
     </div>
   );
 }
