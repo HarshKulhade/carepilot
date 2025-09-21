@@ -10,6 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAppointments } from '@/lib/firestore';
 import type { Appointment } from '@/lib/types';
@@ -61,27 +69,47 @@ export function AppointmentHistoryTable({isAdmin = false}) {
         <Table>
           <TableHeader>
             <TableRow>
+              {isAdmin && <TableHead>Appointment ID</TableHead>}
               <TableHead>Patient</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Concern</TableHead>
               <TableHead>Preferred Time</TableHead>
               <TableHead>Booked Via</TableHead>
+              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {appointments.length > 0 ? (
               appointments.map((appt) => (
                 <TableRow key={appt.appointmentId}>
+                  {isAdmin && <TableCell className="font-mono text-xs">{appt.appointmentId}</TableCell>}
                   <TableCell className="font-medium">{appt.patientName}</TableCell>
                   <TableCell>{appt.phoneNumber}</TableCell>
                   <TableCell>{appt.problem}</TableCell>
                   <TableCell>{appt.preferredTimeSlot}</TableCell>
                   <TableCell>{appt.bookedVia}</TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                       <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => alert(`Viewing details for ${appt.appointmentId}`)}>
+                            View Details
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={isAdmin ? 7 : 5} className="h-24 text-center">
                   No appointments found.
                 </TableCell>
               </TableRow>
