@@ -30,7 +30,7 @@ export function AppointmentHistory({ appointments }: { appointments: Appointment
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedAppointments.map((appt) => (
-          <Card key={appt.id} className="flex flex-col shadow-md hover:shadow-xl transition-shadow">
+          <Card key={appt.appointmentId} className="flex flex-col shadow-md hover:shadow-xl transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
