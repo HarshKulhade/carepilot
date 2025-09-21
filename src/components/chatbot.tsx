@@ -19,6 +19,12 @@ type Message = {
   content: string;
 };
 
+// Simple utility to create unique enough IDs for this demo
+let messageIdCounter = 0;
+const getUniqueMessageId = (role: string) => {
+    return `${role}-${Date.now()}-${messageIdCounter++}`;
+}
+
 export function Chatbot() {
   const router = useRouter();
   const { toast } = useToast();
@@ -31,7 +37,7 @@ export function Chatbot() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   const addMessage = (role: 'user' | 'assistant', content: string) => {
-    setMessages(prev => [...prev, { id: `${role}-${Date.now()}`, role, content }]);
+    setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content }]);
   };
 
   useEffect(() => {
@@ -52,6 +58,7 @@ export function Chatbot() {
         }
     };
     getInitialQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -117,7 +124,7 @@ export function Chatbot() {
             };
             
             // Directly write to localStorage before redirecting
-            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]'));
             localStorage.setItem('appointments', JSON.stringify([...currentAppointments, newAppointment]));
             setAppointments(prev => [...prev, newAppointment]);
             
