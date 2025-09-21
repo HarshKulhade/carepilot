@@ -22,6 +22,7 @@ const ChatbotAppointmentBookingInputSchema = z.object({
   preferredTimeSlot: z
     .string()
     .describe('The preferred date and time for the appointment.'),
+  isEmergency: z.boolean().optional().describe('Whether the appointment is an emergency.'),
 });
 
 export type ChatbotAppointmentBookingInput = z.infer<
@@ -49,6 +50,7 @@ const ChatbotGetNextQuestionInputSchema = z.object({
     phoneNumber: z.string().optional(),
     problem: z.string().optional(),
     preferredTimeSlot: z.string().optional(),
+    isEmergency: z.boolean().optional(),
   }).describe('The data collected from the user so far.'),
 });
 
@@ -127,13 +129,21 @@ If you have just collected a piece of information, acknowledge it briefly and na
 If the user provides multiple pieces of information at once, update all of them.
 Extract the relevant information from the user's last message and update the 'updatedData' field.
 
-When asking for the 'preferredTimeSlot', first ask for the time. Provide the following suggestions in the 'suggestions' field: "9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM".
+When asking for the 'preferredTimeSlot', first check if the user is expressing urgency (e.g., "as soon as possible", "emergency", "urgent").
+If the user's response indicates an emergency:
+- Set 'isEmergency' to true.
+- Set 'preferredTimeSlot' to "Immediate Emergency".
+- Proceed to the confirmation step by setting 'isComplete' to true.
+
+If it is not an emergency, ask for the time. Provide the following suggestions in the 'suggestions' field: "9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM".
 Once the user selects a time, update the 'preferredTimeSlot' with their choice and then ask them for the date. Do not provide suggestions for the date.
 If the user provides a relative date like "today", "tomorrow", or "day after tomorrow", use the provided context to convert it to a full date string and combine it with the time in 'preferredTimeSlot'.
 For example, if the user says "tomorrow" for the date, and the time was "2:00 PM", and the context for tomorrow is "Wed Jul 03 2024", the final 'preferredTimeSlot' should be "2:00 PM on Wed Jul 03 2024".
 Context: {{{json context}}}
 
-If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. For example: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
+If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. 
+If it is an emergency, the summary should reflect that. For example: "This seems to be an emergency. I have your name as John Doe, phone as 555-1234, and reason as 'severe chest pain'. I am marking this as an immediate emergency appointment. Is this correct?"
+For regular appointments: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
 
 If information is still missing, ask the next question and set 'isComplete' to false.
 For example, if 'patientName' is missing, you could ask: "To start, could you please provide your full name?"
@@ -151,11 +161,16 @@ const chatbotAppointmentPrompt = ai.definePrompt({
   - Phone Number: {{{phoneNumber}}}
   - Problem/Concern: {{{problem}}}
   - Preferred Time Slot: {{{preferredTimeSlot}}}
+  {{#if isEmergency}}
+  - This is an EMERGENCY appointment.
+  {{/if}}
 
   The user has confirmed these details. Now, book the appointment.
   Generate a unique appointment ID (e.g., a random alphanumeric string like 'appt-xyz123').
-  Return a friendly and professional confirmation message that includes all the appointment details and the generated ID.
-  For example: "Your appointment for {{{problem}}} is confirmed for {{{preferredTimeSlot}}}. We will contact you at {{{phoneNumber}}} if there are any changes. Your Appointment ID is [Generated ID]."
+  
+  If it's an emergency, the confirmation message should be reassuring and clear. For example: "Your emergency appointment for {{{problem}}} has been registered. Please proceed to the clinic immediately. We will be expecting you. Your Appointment ID is [Generated ID]."
+
+  For regular appointments, return a friendly and professional confirmation message. For example: "Your appointment for {{{problem}}} is confirmed for {{{preferredTimeSlot}}}. We will contact you at {{{phoneNumber}}} if there are any changes. Your Appointment ID is [Generated ID]."
 `,
 });
 

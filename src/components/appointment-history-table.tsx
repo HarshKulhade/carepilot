@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Circle } from 'lucide-react';
+import { MoreHorizontal, Circle, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAppointments, deleteAppointment, updateAppointmentStatus } from '@/lib/firestore';
 import type { Appointment, AppointmentStatus } from '@/lib/types';
@@ -132,7 +132,16 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                   <TableCell className="font-medium">{appt.patientName}</TableCell>
                   <TableCell>{appt.phoneNumber}</TableCell>
                   <TableCell>{appt.problem}</TableCell>
-                  <TableCell>{appt.preferredTimeSlot}</TableCell>
+                  <TableCell>
+                    {appt.isEmergency ? (
+                       <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Emergency
+                      </Badge>
+                    ) : (
+                      appt.preferredTimeSlot
+                    )}
+                  </TableCell>
                    {isAdmin && (
                     <TableCell>
                       <Badge

@@ -1,6 +1,6 @@
 import { db } from './firebase';
 import { collection, addDoc, getDocs, getDoc, doc, query, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
-import type { Appointment, AppointmentStatus } from './types';
+import type { Appointment } from './types';
 
 const APPOINTMENTS_COLLECTION = 'appointments';
 
@@ -10,6 +10,7 @@ export async function addAppointment(appointmentData: Omit<Appointment, 'id' | '
     const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
         ...appointmentData,
         status: 'pending', // Default status
+        isEmergency: appointmentData.isEmergency || false,
     });
     return docRef.id;
   } catch (e) {
@@ -63,7 +64,7 @@ export async function deleteAppointment(id: string): Promise<void> {
 }
 
 // Update an appointment's status
-export async function updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<void> {
+export async function updateAppointmentStatus(id: string, status: Appointment['status']): Promise<void> {
     try {
         const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
         await updateDoc(docRef, { status });

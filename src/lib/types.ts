@@ -11,4 +11,5 @@ export interface Appointment {
   bookedVia?: 'chatbot' | 'voice';
   createdAt: string; // ISO string
   status: AppointmentStatus;
+  isEmergency?: boolean;
 }
