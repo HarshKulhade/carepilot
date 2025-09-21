@@ -39,7 +39,7 @@ export function Chatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [localAppointments, setLocalAppointments] = useLocalStorage<Omit<Appointment, 'id'>[]>('appointments', []);
+  const [localAppointments, setLocalAppointments] = useLocalStorage<Omit<Appointment, 'id' | 'status'>[]>('appointments', []);
   
   const addMessage = (role: 'user' | 'assistant', content: string, suggestions?: string[]) => {
     setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content, suggestions }]);
@@ -48,7 +48,6 @@ export function Chatbot() {
   useEffect(() => {
     // Initial greeting from the assistant
     const getInitialQuestion = async () => {
-      if (messages.length === 0) {
         setIsTyping(true);
         try {
           const result = await getNextQuestion({ history: [], currentData: {} });
@@ -59,9 +58,10 @@ export function Chatbot() {
         } finally {
           setIsTyping(false);
         }
-      }
     };
-    getInitialQuestion();
+     if (messages.length === 0) {
+        getInitialQuestion();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -121,7 +121,7 @@ export function Chatbot() {
         try {
             const result = await chatbotAppointmentBooking(formData as ChatbotAppointmentBookingInput);
             
-            const newAppointment: Omit<Appointment, 'id'> = {
+            const newAppointment: Omit<Appointment, 'id' | 'status'> = {
                 ...(formData as ChatbotAppointmentBookingInput),
                 confirmationMessage: result.confirmationMessage,
                 bookedVia: 'chatbot',

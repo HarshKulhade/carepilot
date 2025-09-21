@@ -1,13 +1,16 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, getDoc, doc, query, orderBy } from 'firebase/firestore';
-import type { Appointment } from './types';
+import { collection, addDoc, getDocs, getDoc, doc, query, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
+import type { Appointment, AppointmentStatus } from './types';
 
 const APPOINTMENTS_COLLECTION = 'appointments';
 
 // Add a new appointment to Firestore
-export async function addAppointment(appointmentData: Omit<Appointment, 'id'>): Promise<string> {
+export async function addAppointment(appointmentData: Omit<Appointment, 'id' | 'status'>): Promise<string> {
   try {
-    const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), appointmentData);
+    const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
+        ...appointmentData,
+        status: 'pending', // Default status
+    });
     return docRef.id;
   } catch (e) {
     console.error('Error adding document: ', e);
@@ -46,5 +49,26 @@ export async function getAppointmentById(id: string): Promise<Appointment | null
     } catch (e) {
         console.error("Error getting document:", e);
         throw new Error("Could not fetch appointment.");
+    }
+}
+
+// Delete an appointment by its ID
+export async function deleteAppointment(id: string): Promise<void> {
+    try {
+        await deleteDoc(doc(db, APPOINTMENTS_COLLECTION, id));
+    } catch (e) {
+        console.error("Error deleting document:", e);
+        throw new Error("Could not delete appointment.");
+    }
+}
+
+// Update an appointment's status
+export async function updateAppointmentStatus(id: string, status: AppointmentStatus): Promise<void> {
+    try {
+        const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
+        await updateDoc(docRef, { status });
+    } catch (e) {
+        console.error("Error updating document:", e);
+        throw new Error("Could not update appointment status.");
     }
 }

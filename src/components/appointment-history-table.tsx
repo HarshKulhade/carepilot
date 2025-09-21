@@ -20,14 +20,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Circle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAppointments } from '@/lib/firestore';
-import type { Appointment } from '@/lib/types';
+import { getAppointments, deleteAppointment, updateAppointmentStatus } from '@/lib/firestore';
+import type { Appointment, AppointmentStatus } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function AppointmentHistoryTable({isAdmin = false}) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [localAppointments] = useLocalStorage<Appointment[]>('appointments', []);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchAppointments() {
@@ -37,17 +41,57 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                 setAppointments(fetchedAppointments);
             } catch (error) {
                 console.error("Failed to fetch appointments:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Failed to fetch appointments.',
+                });
             } finally {
                 setIsLoading(false);
             }
         } else {
-            // For non-admin, use local storage
             setAppointments(localAppointments);
             setIsLoading(false);
         }
     }
     fetchAppointments();
-  }, [isAdmin, localAppointments]);
+  }, [isAdmin, localAppointments, toast]);
+
+  const handleUpdateStatus = async (id: string, status: AppointmentStatus) => {
+    try {
+        await updateAppointmentStatus(id, status);
+        setAppointments(prev => prev.map(appt => appt.id === id ? { ...appt, status } : appt));
+        toast({
+            title: 'Success',
+            description: `Appointment status updated to "${status}".`,
+        });
+    } catch (error) {
+        console.error("Failed to update status:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update appointment status.',
+        });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+        await deleteAppointment(id);
+        setAppointments(prev => prev.filter(appt => appt.id !== id));
+        toast({
+            title: 'Success',
+            description: 'Appointment has been removed.',
+        });
+    } catch (error) {
+        console.error("Failed to delete appointment:", error);
+         toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to remove appointment.',
+        });
+    }
+  };
 
 
   if (isLoading) {
@@ -75,6 +119,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
               <TableHead>Phone</TableHead>
               <TableHead>Concern</TableHead>
               <TableHead>Preferred Time</TableHead>
+               {isAdmin && <TableHead>Status</TableHead>}
               <TableHead>Booked Via</TableHead>
               {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
@@ -88,7 +133,20 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                   <TableCell>{appt.phoneNumber}</TableCell>
                   <TableCell>{appt.problem}</TableCell>
                   <TableCell>{appt.preferredTimeSlot}</TableCell>
-                  <TableCell>{appt.bookedVia}</TableCell>
+                   {isAdmin && (
+                    <TableCell>
+                      <Badge
+                        className={cn({
+                          'bg-green-100 text-green-800 hover:bg-green-200': appt.status === 'appointed',
+                          'bg-yellow-100 text-yellow-800 hover:bg-yellow-200': appt.status === 'on hold',
+                          'bg-gray-100 text-gray-800 hover:bg-gray-200': appt.status === 'pending',
+                        })}
+                      >
+                        {appt.status}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  <TableCell>{appt.bookedVia || 'N/A'}</TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
                        <DropdownMenu>
@@ -99,20 +157,20 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => alert(`Viewing details for ${appt.appointmentId}`)}>
+                           <DropdownMenuItem onClick={() => alert(`Viewing details for ${appt.appointmentId}`)}>
                             View Details
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateStatus(appt.id, 'appointed')}>
                             <Circle className="mr-2 h-3 w-3 text-green-500 fill-green-500" />
                             Appointed
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateStatus(appt.id, 'on hold')}>
                              <Circle className="mr-2 h-3 w-3 text-yellow-500 fill-yellow-500" />
                             On Hold
                           </DropdownMenuItem>
                            <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                          <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => handleDelete(appt.id)}>
                              <Circle className="mr-2 h-3 w-3 text-red-500 fill-red-500" />
                             Remove
                           </DropdownMenuItem>
@@ -124,7 +182,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 7 : 5} className="h-24 text-center">
+                <TableCell colSpan={isAdmin ? 8 : 5} className="h-24 text-center">
                   No appointments found.
                 </TableCell>
               </TableRow>

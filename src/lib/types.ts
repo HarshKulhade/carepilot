@@ -1,3 +1,5 @@
+export type AppointmentStatus = 'pending' | 'appointed' | 'on hold';
+
 export interface Appointment {
   id: string;
   appointmentId: string;
@@ -6,6 +8,7 @@ export interface Appointment {
   problem: string;
   preferredTimeSlot: string;
   confirmationMessage: string;
-  bookedVia: 'chatbot' | 'voice';
+  bookedVia?: 'chatbot' | 'voice';
   createdAt: string; // ISO string
+  status: AppointmentStatus;
 }
