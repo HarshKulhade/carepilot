@@ -19,13 +19,13 @@ export function Header() {
         </Link>
         <nav className="flex items-center space-x-8 text-sm font-medium">
           <Link
-            href="#"
+            href="/history"
             className="transition-colors text-foreground/80 hover:text-foreground"
           >
-            Features
+            My Appointments
           </Link>
           <Button asChild>
-            <Link href="#">Admin</Link>
+            <Link href="/admin/login">Admin</Link>
           </Button>
         </nav>
       </div>
