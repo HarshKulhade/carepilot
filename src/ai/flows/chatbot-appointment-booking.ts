@@ -67,7 +67,23 @@ export async function chatbotAppointmentBooking(
 }
 
 export async function getNextQuestion(input: z.infer<typeof ChatbotGetNextQuestionInputSchema>): Promise<z.infer<typeof ChatbotGetNextQuestionOutputSchema>> {
-    return getNextQuestionFlow(input);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+    const context: Record<string, string> = {
+        'today': today.toDateString(),
+        'tomorrow': tomorrow.toDateString(),
+        'day after tomorrow': dayAfterTomorrow.toDateString()
+    };
+    
+    const { output } = await getNextQuestionPrompt({
+        ...input,
+        context
+    });
+    return output!;
 }
 
 
@@ -86,7 +102,9 @@ const getNextQuestionFlow = ai.defineFlow(
 
 const getNextQuestionPrompt = ai.definePrompt({
     name: 'getNextQuestionPrompt',
-    input: { schema: ChatbotGetNextQuestionInputSchema },
+    input: { schema: ChatbotGetNextQuestionInputSchema.extend({
+        context: z.record(z.string()).optional(),
+    }) },
     output: { schema: ChatbotGetNextQuestionOutputSchema },
     prompt: `You are a friendly AI assistant helping a user book a medical appointment. Your goal is to collect information in a conversational way.
 
@@ -111,8 +129,11 @@ Extract the relevant information from the user's last message and update the 'up
 
 When asking for the 'preferredTimeSlot', first ask for the time. Provide the following suggestions in the 'suggestions' field: "9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM".
 Once the user selects a time, update the 'preferredTimeSlot' with their choice and then ask them for the date. Do not provide suggestions for the date.
+If the user provides a relative date like "today", "tomorrow", or "day after tomorrow", use the provided context to convert it to a full date string and combine it with the time in 'preferredTimeSlot'.
+For example, if the user says "tomorrow" for the date, and the time was "2:00 PM", and the context for tomorrow is "Wed Jul 03 2024", the final 'preferredTimeSlot' should be "2:00 PM on Wed Jul 03 2024".
+Context: {{{json context}}}
 
-If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. For example: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as 'tomorrow at 2pm'. Can I go ahead and book this?"
+If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. For example: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
 
 If information is still missing, ask the next question and set 'isComplete' to false.
 For example, if 'patientName' is missing, you could ask: "To start, could you please provide your full name?"
@@ -154,3 +175,5 @@ const chatbotAppointmentBookingFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    

@@ -48,20 +48,20 @@ export function Chatbot() {
   useEffect(() => {
     // Initial greeting from the assistant
     const getInitialQuestion = async () => {
-      setIsTyping(true);
-      try {
-        const result = await getNextQuestion({ history: [], currentData: {} });
-        addMessage('assistant', result.nextQuestion, result.suggestions);
-      } catch (error) {
-        console.error("Failed to get initial question:", error);
-        addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
-      } finally {
-        setIsTyping(false);
+      if (messages.length === 0) {
+        setIsTyping(true);
+        try {
+          const result = await getNextQuestion({ history: [], currentData: {} });
+          addMessage('assistant', result.nextQuestion, result.suggestions);
+        } catch (error) {
+          console.error("Failed to get initial question:", error);
+          addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
+        } finally {
+          setIsTyping(false);
+        }
       }
     };
-    if (messages.length === 0) {
-      getInitialQuestion();
-    }
+    getInitialQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -241,3 +241,5 @@ export function Chatbot() {
     </Card>
   );
 }
+
+    
