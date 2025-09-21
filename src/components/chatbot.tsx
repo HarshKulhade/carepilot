@@ -193,7 +193,7 @@ export function Chatbot() {
                    {message.content}
                   </div>
                 </div>
-                {message.suggestions && message.suggestions.length > 0 && (
+                {message.suggestions && message.suggestions.length > 0 && messages[messages.length - 1].id === message.id && (
                   <div className="flex justify-start flex-wrap gap-2 mt-2">
                     {message.suggestions.map((suggestion, index) => (
                       <Button

@@ -10,6 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getAppointments } from '@/lib/firestore';
+import { ALL_TIME_SLOTS } from '@/lib/time-slots';
 
 const ChatbotAppointmentBookingInputSchema = z.object({
   patientName: z.string().describe('The full name of the patient.'),
@@ -77,11 +79,42 @@ export async function getNextQuestion(input: z.infer<typeof ChatbotGetNextQuesti
     const dayAfterTomorrow = new Date(today);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
-    const context: Record<string, string> = {
+    const context: Record<string, any> = {
         'today': today.toDateString(),
         'tomorrow': tomorrow.toDateString(),
-        'day after tomorrow': dayAfterTomorrow.toDateString()
+        'day after tomorrow': dayAfterTomorrow.toDateString(),
     };
+
+    // If a date has been provided (in preferredTimeSlot), find available slots for that date.
+    if (input.currentData.problem && input.currentData.preferredTimeSlot && !ALL_TIME_SLOTS.some(slot => input.currentData.preferredTimeSlot!.includes(slot))) {
+        try {
+            const allAppointments = await getAppointments();
+            const providedDate = new Date(input.currentData.preferredTimeSlot).toDateString();
+
+            const bookedSlots = allAppointments
+                .filter(appt => new Date(appt.preferredTimeSlot).toDateString() === providedDate)
+                .map(appt => {
+                    // Extract time part from "2:00 PM on Wed Jul 10 2024"
+                    const match = appt.preferredTimeSlot.match(/(\d{1,2}:\d{2}\s[AP]M)/);
+                    return match ? match[1] : null;
+                })
+                .filter((slot): slot is string => slot !== null);
+
+
+            const availableSlots = ALL_TIME_SLOTS.filter(slot => !bookedSlots.includes(slot));
+            context.availableSlots = availableSlots;
+        } catch (error) {
+            console.error("Failed to fetch appointments to check for available slots:", error);
+            // If we can't check for slots, we can't proceed with booking for a specific day.
+            // Ask to start over or handle the error gracefully.
+            return {
+                nextQuestion: "I'm having trouble checking our schedule right now. Could you please try again in a few moments?",
+                isComplete: false,
+                updatedData: input.currentData,
+                suggestions: []
+            };
+        }
+    }
     
     const { output } = await getNextQuestionPrompt({
         ...input,
@@ -107,16 +140,17 @@ const getNextQuestionFlow = ai.defineFlow(
 const getNextQuestionPrompt = ai.definePrompt({
     name: 'getNextQuestionPrompt',
     input: { schema: ChatbotGetNextQuestionInputSchema.extend({
-        context: z.record(z.string()).optional(),
+        context: z.record(z.any()).optional(),
     }) },
     output: { schema: ChatbotGetNextQuestionOutputSchema },
     prompt: `You are a friendly AI assistant helping a user book a medical appointment. Your goal is to collect information in a conversational way.
 
-You need to collect the following information:
-- Patient Name (patientName)
-- Phone Number (phoneNumber) - Must be exactly 10 digits.
-- Medical Problem/Concern (problem)
-- Preferred Time Slot (preferredTimeSlot) - This should include date and time.
+You need to collect the following information in this specific order:
+1. Patient Name (patientName)
+2. Phone Number (phoneNumber) - Must be exactly 10 digits.
+3. Medical Problem/Concern (problem)
+4. Preferred Date (which will be stored temporarily in preferredTimeSlot)
+5. Preferred Time (which will be combined with the date in preferredTimeSlot)
 
 Current collected data:
 {{{json currentData}}}
@@ -126,32 +160,40 @@ Conversation history:
 - {{role}}: {{content}}
 {{/each}}
 
-Based on the history and current data, determine the next logical question to ask to gather the missing information.
+Based on the history and current data, determine the next logical question to ask.
 If you have just collected a piece of information, acknowledge it briefly and naturally before asking the next question.
-If the user provides multiple pieces of information at once, update all of them.
 Extract the relevant information from the user's last message and update the 'updatedData' field.
 
-When asking for the 'phoneNumber', if the user provides a number that is not 10 digits, you must ask again. For example: "Please provide a valid 10-digit phone number."
+Specific Question Flow:
+- If 'patientName' is missing, ask for it.
+- If 'patientName' is present but 'phoneNumber' is missing, ask for it. Validate that it's 10 digits. If not, ask again: "Please provide a valid 10-digit phone number."
+- If 'phoneNumber' is present but 'problem' is missing, ask for it.
+- If 'problem' is present but 'preferredTimeSlot' is missing, ask for the preferred DATE. Do not ask for the time yet. Provide suggestions like "Today", "Tomorrow".
+- If the user provides a relative date like "today", "tomorrow", or "day after tomorrow", use the provided context to convert it to a full date string and store it in 'preferredTimeSlot'.
+  Context: {{{json context}}}
 
-When asking for the 'preferredTimeSlot', first check if the user is expressing urgency (e.g., "as soon as possible", "emergency", "urgent").
-If the user's response indicates an emergency:
-- Set 'isEmergency' to true.
-- Set 'preferredTimeSlot' to "Immediate Emergency".
-- Proceed to the confirmation step by setting 'isComplete' to true.
+- If a DATE has just been collected (and is now in 'preferredTimeSlot'):
+  - Acknowledge the date.
+  - Now, ask for the TIME.
+  - Use the 'availableSlots' from the context to suggest available times. For example: "Great, for [Date], we have the following times available: [list of slots]. Which one works for you?"
+  - Set the 'suggestions' field in your output to the 'availableSlots' from the context.
+  Context with available slots: {{{json context}}}
 
-If it is not an emergency, ask for the time. Provide the following suggestions in the 'suggestions' field: "9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM".
-Once the user selects a time, update the 'preferredTimeSlot' with their choice and then ask them for the date. Do not provide suggestions for the date.
-If the user provides a relative date like "today", "tomorrow", or "day after tomorrow", use the provided context to convert it to a full date string and combine it with the time in 'preferredTimeSlot'.
-For example, if the user says "tomorrow" for the date, and the time was "2:00 PM", and the context for tomorrow is "Wed Jul 03 2024", the final 'preferredTimeSlot' should be "2:00 PM on Wed Jul 03 2024".
-Context: {{{json context}}}
+- If the user selects a time from the suggestions:
+  - Combine the selected time with the date already stored in 'preferredTimeSlot'.
+  - For example, if the user picks "2:00 PM" and the date was "Wed Jul 10 2024", the final 'preferredTimeSlot' should be "2:00 PM on Wed Jul 10 2024".
 
-If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. 
-If it is an emergency, the summary should reflect that. For example: "This seems to be an emergency. I have your name as John Doe, phone as 555-123-4567, and reason as 'severe chest pain'. I am marking this as an immediate emergency appointment. Is this correct?"
-For regular appointments: "Great, I have all the details. I've got your name as John Doe, phone as 555-123-4567, reason for visit as 'sore throat', and preferred time as '2:00 PM on Wed Jul 03 2024'. Can I go ahead and book this?"
+- Special handling for emergencies: At any point, if the user's response indicates urgency (e.g., "as soon as possible", "emergency", "urgent"):
+  - Set 'isEmergency' to true.
+  - Set 'preferredTimeSlot' to "Immediate Emergency".
+  - Skip all other questions and proceed to the confirmation step by setting 'isComplete' to true.
 
-If information is still missing, ask the next question and set 'isComplete' to false.
-For example, if 'patientName' is missing, you could ask: "To start, could you please provide your full name?"
-If 'patientName' is present but 'phoneNumber' is missing, you could ask: "Thanks, {{currentData.patientName}}. What's the best 10-digit phone number to reach you at?"
+- Confirmation Step: Once all information (Name, Phone, Problem, and full Time Slot) is collected, or if it's an emergency:
+  - Set 'isComplete' to true.
+  - Set 'nextQuestion' to a summary of the collected details, asking for final confirmation.
+  - For emergencies: "This seems to be an emergency. I have your name as [Name], phone as [Phone], and reason as [Problem]. I am marking this as an immediate emergency appointment. Is this correct?"
+  - For regular appointments: "Great, I have all the details. I've got your name as [Name], phone as [Phone], reason for visit as [Problem], and preferred time as [Time Slot]. Can I go ahead and book this?"
+
 `,
 });
 
@@ -194,5 +236,3 @@ const chatbotAppointmentBookingFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    
