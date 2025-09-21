@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { AppointmentHistory } from '@/components/appointment-history';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Appointment } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function HistoryPage() {
   const [appointments] = useLocalStorage<Appointment[]>('appointments', []);

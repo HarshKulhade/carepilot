@@ -8,15 +8,13 @@ import { useState, useEffect, useCallback } from 'react';
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
-  isSingleton = false,
+  isSingleton = true, // Set to true to sync across tabs
 ): [T, (value: T | ((val: T) => T)) => void] {
   
   const [value, setValue] = useState<T>(() => {
-    // On the server, return initial value
     if (typeof window === 'undefined') {
       return initialValue;
     }
-    // On the client, try to read from localStorage
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
@@ -28,65 +26,56 @@ export function useLocalStorage<T>(
 
   const setLocalStorageValue = useCallback(
     (newValue: T | ((val: T) => T)) => {
-      const valueToStore = newValue instanceof Function ? newValue(value) : newValue;
-      setValue(valueToStore);
       try {
+        const valueToStore = newValue instanceof Function ? newValue(value) : newValue;
+        setValue(valueToStore);
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          if (isSingleton) {
-            // Dispatch a storage event to notify other tabs/windows
-            window.dispatchEvent(new StorageEvent('storage', { key }));
-          }
+          const stringifiedValue = JSON.stringify(valueToStore);
+          window.localStorage.setItem(key, stringifiedValue);
+          // Dispatch a custom event to notify other components/tabs
+          window.dispatchEvent(new CustomEvent('local-storage', { detail: { key, value: stringifiedValue } }));
         }
       } catch (error) {
         console.warn(`Error setting localStorage key “${key}”:`, error);
       }
     },
-    [key, isSingleton, value]
+    [key, value]
   );
 
   useEffect(() => {
-    // This effect ensures that the state is updated when localStorage
-    // changes in another tab or window.
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === key || (isSingleton && e.key === key)) {
+      if (e.key === key) {
          try {
-            const item = window.localStorage.getItem(key);
-            if (item) {
-              setValue(JSON.parse(item));
+            if (e.newValue) {
+              setValue(JSON.parse(e.newValue));
             } else {
               setValue(initialValue);
             }
          } catch (error) {
-            console.warn(`Error parsing localStorage key “${key}”:`, error);
+            console.warn(`Error parsing localStorage key “${key}” from storage event:`, error);
          }
       }
     };
+    
+    const handleCustomEvent = (e: Event) => {
+        const { key: eventKey, value: eventValue } = (e as CustomEvent).detail;
+        if (eventKey === key) {
+            try {
+                setValue(JSON.parse(eventValue));
+            } catch (error) {
+                console.warn(`Error parsing localStorage key “${key}” from custom event:`, error);
+            }
+        }
+    }
 
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('local-storage', handleCustomEvent);
     
-    // Also check on focus
-    const handleFocus = () => {
-        try {
-            const item = window.localStorage.getItem(key);
-            if (item) {
-                const parsed = JSON.parse(item);
-                // Only update if the value has actually changed
-                if(JSON.stringify(parsed) !== JSON.stringify(value)) {
-                    setValue(parsed);
-                }
-            }
-        } catch (error) {
-            console.warn(`Error re-validating localStorage key “${key}”:`, error);
-        }
-    };
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('local-storage', handleCustomEvent);
     };
-  }, [key, isSingleton, initialValue, value]);
+  }, [key, initialValue]);
 
   return [value, setLocalStorageValue];
 }

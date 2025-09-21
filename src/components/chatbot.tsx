@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { chatbotAppointmentBooking, getNextQuestion, ChatbotAppointmentBookingInput } from '@/ai/flows/chatbot-appointment-booking';
 import type { Appointment } from '@/lib/types';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { addAppointment } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -30,7 +30,6 @@ const getUniqueMessageId = (role: string) => {
 export function Chatbot() {
   const router = useRouter();
   const { toast } = useToast();
-  const [appointments, setAppointments] = useLocalStorage<Appointment[]>('appointments', []);
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [formData, setFormData] = useState<Partial<ChatbotAppointmentBookingInput>>({});
@@ -47,7 +46,6 @@ export function Chatbot() {
     const getInitialQuestion = async () => {
       setIsTyping(true);
       try {
-        const result = await getNextQuestion({ history: [], currentData: {} });
         addMessage('assistant', "Hi! I'm your clinic assistant. Can I help you book an appointment?");
       } catch (error) {
         console.error("Failed to get initial question:", error);
@@ -116,22 +114,20 @@ export function Chatbot() {
         try {
             const result = await chatbotAppointmentBooking(formData as ChatbotAppointmentBookingInput);
             
-            const newAppointment: Appointment = {
-                id: result.appointmentId,
+            const newAppointment: Omit<Appointment, 'id'> = {
                 ...(formData as ChatbotAppointmentBookingInput),
                 confirmationMessage: result.confirmationMessage,
                 bookedVia: 'chatbot',
                 createdAt: new Date().toISOString(),
+                appointmentId: result.appointmentId,
             };
-            
-            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-            localStorage.setItem('appointments', JSON.stringify([...currentAppointments, newAppointment]));
-            setAppointments(prev => [...prev, newAppointment]);
+
+            const appointmentId = await addAppointment(newAppointment);
             
             addMessage('assistant', `${result.confirmationMessage} I'll redirect you to the confirmation page.`);
             
             setTimeout(() => {
-                router.push(`/confirmation/${result.appointmentId}`);
+                router.push(`/confirmation/${appointmentId}`);
             }, 2000);
 
         } catch (error) {

@@ -36,7 +36,7 @@ export function AppointmentHistory({ appointments }: { appointments: Appointment
                 <FileText className="h-5 w-5 text-primary" />
                 <span>Appointment Details</span>
               </CardTitle>
-              <CardDescription>ID: {appt.id}</CardDescription>
+              <CardDescription>ID: {appt.appointmentId}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 flex-grow">
               <div className="flex items-center gap-3">

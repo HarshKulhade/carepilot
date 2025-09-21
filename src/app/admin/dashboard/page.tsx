@@ -4,29 +4,40 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppointmentHistoryTable } from '@/components/appointment-history-table';
 import { Button } from '@/components/ui/button';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, LogOut } from 'lucide-react';
+import { getAuth, onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { app } from '@/lib/firebase'; // Ensure firebase is initialized
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useLocalStorage('admin-auth', false);
-  const [isClient, setIsClient] = useState(false);
+  const auth = getAuth(app);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    if (!isAuthenticated) {
-      router.replace('/admin/login');
-    }
-  }, [isAuthenticated, router]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+      } else {
+        router.replace('/admin/login');
+      }
+      setIsLoading(false);
+    });
 
-  const handleSignOut = () => {
-    setIsAuthenticated(false);
-    router.push('/admin/login');
+    return () => unsubscribe();
+  }, [auth, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/admin/login');
+    } catch (error) {
+        console.error("Error signing out:", error);
+    }
   };
   
-  if (!isClient || !isAuthenticated) {
-    // Render a loading state or nothing while checking auth
+  if (isLoading || !user) {
     return (
        <div className="flex h-screen w-full items-center justify-center">
         <div className="text-center">
@@ -53,7 +64,7 @@ export default function AdminDashboardPage() {
           <CardTitle>All Patient Appointments</CardTitle>
         </CardHeader>
         <CardContent>
-            <AppointmentHistoryTable />
+            <AppointmentHistoryTable isAdmin={true} />
         </CardContent>
       </Card>
     </div>

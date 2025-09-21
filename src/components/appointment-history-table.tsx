@@ -2,8 +2,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import type { Appointment } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -13,18 +11,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAppointments } from '@/lib/firestore';
+import type { Appointment } from '@/lib/types';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
-export function AppointmentHistoryTable() {
-  const [storedAppointments] = useLocalStorage<Appointment[]>('appointments', []);
-  const [isClient, setIsClient] = useState(false);
+export function AppointmentHistoryTable({isAdmin = false}) {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [localAppointments] = useLocalStorage<Appointment[]>('appointments', []);
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    async function fetchAppointments() {
+        if (isAdmin) {
+            try {
+                const fetchedAppointments = await getAppointments();
+                setAppointments(fetchedAppointments);
+            } catch (error) {
+                console.error("Failed to fetch appointments:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+            // For non-admin, use local storage
+            setAppointments(localAppointments);
+            setIsLoading(false);
+        }
+    }
+    fetchAppointments();
+  }, [isAdmin, localAppointments]);
 
-  const sortedAppointments = isClient ? [...storedAppointments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : [];
 
-  if (!isClient) {
+  if (isLoading) {
     return (
       <div>
         <h2 className="text-2xl font-bold mb-4">Appointment History</h2>
@@ -39,7 +56,7 @@ export function AppointmentHistoryTable() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Appointment History</h2>
+      <h2 className="text-2xl font-bold mb-4">Recent Appointments</h2>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
@@ -52,8 +69,8 @@ export function AppointmentHistoryTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedAppointments.length > 0 ? (
-              sortedAppointments.map((appt) => (
+            {appointments.length > 0 ? (
+              appointments.map((appt) => (
                 <TableRow key={appt.id}>
                   <TableCell className="font-medium">{appt.patientName}</TableCell>
                   <TableCell>{appt.phoneNumber}</TableCell>
