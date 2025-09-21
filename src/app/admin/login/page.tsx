@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { app } from '@/lib/firebase'; // Import the initialized Firebase app
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const auth = getAuth();
+  const auth = getAuth(app); // Pass the app instance to getAuth
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
