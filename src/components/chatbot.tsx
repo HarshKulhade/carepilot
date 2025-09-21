@@ -12,6 +12,7 @@ import type { Appointment } from '@/lib/types';
 import { addAppointment } from '@/lib/firestore';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 type Message = {
   id: string;
@@ -36,6 +37,7 @@ export function Chatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [localAppointments, setLocalAppointments] = useLocalStorage<Omit<Appointment, 'id'>[]>('appointments', []);
   
   const addMessage = (role: 'user' | 'assistant', content: string) => {
     setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content }]);
@@ -46,7 +48,8 @@ export function Chatbot() {
     const getInitialQuestion = async () => {
       setIsTyping(true);
       try {
-        addMessage('assistant', "Hi! I'm your clinic assistant. Can I help you book an appointment?");
+        const result = await getNextQuestion({ history: [], currentData: {} });
+        addMessage('assistant', result.nextQuestion);
       } catch (error) {
         console.error("Failed to get initial question:", error);
         addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
@@ -55,7 +58,7 @@ export function Chatbot() {
       }
     };
     if (messages.length === 0) {
-      getInitialQuestion();
+      addMessage('assistant', "Hi! I'm your clinic assistant. To start, could you please provide your full name?");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -123,6 +126,9 @@ export function Chatbot() {
             };
 
             const appointmentId = await addAppointment(newAppointment);
+
+            // Also save to local storage for non-admin history view
+            setLocalAppointments([...localAppointments, newAppointment]);
             
             addMessage('assistant', `${result.confirmationMessage} I'll redirect you to the confirmation page.`);
             
@@ -141,19 +147,8 @@ export function Chatbot() {
              setIsTyping(false);
         }
     } else {
-        addMessage('assistant', "No problem. Let's start over.");
+        addMessage('assistant', "No problem. Let's start over. What is your full name?");
         setFormData({});
-        setIsTyping(true);
-        try {
-          const result = await getNextQuestion({ history: [], currentData: {} });
-          if (result.nextQuestion) {
-              addMessage('assistant', result.nextQuestion);
-          }
-        } catch (error) {
-           addMessage('assistant', "Let's try that again. What is your full name?");
-        } finally {
-            setIsTyping(false);
-        }
     }
   }
 
@@ -211,7 +206,7 @@ export function Chatbot() {
           <Input
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Enter your full name"
+            placeholder="Enter your message..."
             disabled={isTyping || messages.length === 0}
             aria-label="Chat input"
             className="border-gray-300 focus-visible:ring-primary"
