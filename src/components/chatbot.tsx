@@ -124,7 +124,7 @@ export function Chatbot() {
                 createdAt: new Date().toISOString(),
             };
             
-            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]'));
+            const currentAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
             localStorage.setItem('appointments', JSON.stringify([...currentAppointments, newAppointment]));
             setAppointments(prev => [...prev, newAppointment]);
             
