@@ -71,7 +71,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
           <TableBody>
             {appointments.length > 0 ? (
               appointments.map((appt) => (
-                <TableRow key={appt.id}>
+                <TableRow key={appt.appointmentId}>
                   <TableCell className="font-medium">{appt.patientName}</TableCell>
                   <TableCell>{appt.phoneNumber}</TableCell>
                   <TableCell>{appt.problem}</TableCell>
