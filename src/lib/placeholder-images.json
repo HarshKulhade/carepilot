@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "A calm and modern clinic reception area.",
+      "imageUrl": "https://picsum.photos/seed/medichat-hero/600/338",
+      "imageHint": "clinic reception"
+    }
+  ]
 }
