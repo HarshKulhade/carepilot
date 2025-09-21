@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, User, Bot } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  suggestions?: string[];
 };
 
 let messageIdCounter = 0;
@@ -40,8 +41,8 @@ export function Chatbot() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [localAppointments, setLocalAppointments] = useLocalStorage<Omit<Appointment, 'id'>[]>('appointments', []);
   
-  const addMessage = (role: 'user' | 'assistant', content: string) => {
-    setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content }]);
+  const addMessage = (role: 'user' | 'assistant', content: string, suggestions?: string[]) => {
+    setMessages(prev => [...prev, { id: getUniqueMessageId(role), role, content, suggestions }]);
   };
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function Chatbot() {
       setIsTyping(true);
       try {
         const result = await getNextQuestion({ history: [], currentData: {} });
-        addMessage('assistant', result.nextQuestion);
+        addMessage('assistant', result.nextQuestion, result.suggestions);
       } catch (error) {
         console.error("Failed to get initial question:", error);
         addMessage('assistant', "I'm having trouble starting up. Please try refreshing the page.");
@@ -70,42 +71,44 @@ export function Chatbot() {
     }
   }, [messages, isTyping]);
 
-  const handleUserInput = async (e: FormEvent) => {
+  const handleUserInput = async (e: FormEvent, suggestion?: string) => {
     e.preventDefault();
-    if (!userInput.trim() || isTyping) return;
-
-    const currentInput = userInput;
+    const currentInput = suggestion || userInput;
+    if (!currentInput.trim() || isTyping) return;
+  
     addMessage('user', currentInput);
-    setUserInput('');
-    setIsTyping(true);
-
-    if (isConfirming) {
-        handleConfirmation(currentInput);
-        return;
+    if (!suggestion) {
+      setUserInput('');
     }
-
+    setIsTyping(true);
+  
+    if (isConfirming) {
+      handleConfirmation(currentInput);
+      return;
+    }
+  
     try {
-        const history = messages.map(({ role, content }) => ({ role, content }));
-        history.push({ role: 'user', content: currentInput });
-
-        const result = await getNextQuestion({ history, currentData: formData });
-        
-        const newFormData = { ...formData, ...result.updatedData };
-        setFormData(newFormData);
-
-        if (result.nextQuestion) {
-            addMessage('assistant', result.nextQuestion);
-        }
-
-        if (result.isComplete) {
-            setIsConfirming(true);
-        }
-
+      const history = messages.map(({ role, content }) => ({ role, content }));
+      history.push({ role: 'user', content: currentInput });
+  
+      const result = await getNextQuestion({ history, currentData: formData });
+  
+      const newFormData = { ...formData, ...result.updatedData };
+      setFormData(newFormData);
+  
+      if (result.nextQuestion) {
+        addMessage('assistant', result.nextQuestion, result.suggestions);
+      }
+  
+      if (result.isComplete) {
+        setIsConfirming(true);
+      }
+  
     } catch (error) {
-        console.error("Error processing user input:", error);
-        addMessage('assistant', "I'm sorry, I'm having trouble understanding. Could you please rephrase?");
+      console.error("Error processing user input:", error);
+      addMessage('assistant', "I'm sorry, I'm having trouble understanding. Could you please rephrase?");
     } finally {
-        setIsTyping(false);
+      setIsTyping(false);
     }
   };
 
@@ -174,13 +177,30 @@ export function Chatbot() {
         <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 400px)', minHeight: '300px'}}>
           <div className="space-y-4">
             {messages.map((message) => (
-              <div key={message.id} className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={cn(
-                    'max-w-[85%] rounded-lg p-3 text-sm whitespace-pre-wrap', 
-                    message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'
-                )}>
-                 {message.content}
+              <div key={message.id}>
+                <div className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}>
+                  <div className={cn(
+                      'max-w-[85%] rounded-lg p-3 text-sm whitespace-pre-wrap', 
+                      message.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'
+                  )}>
+                   {message.content}
+                  </div>
                 </div>
+                {message.suggestions && message.suggestions.length > 0 && (
+                  <div className="flex justify-start gap-2 mt-2">
+                    {message.suggestions.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => handleUserInput(e, suggestion)}
+                        disabled={isTyping}
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {isTyping && (

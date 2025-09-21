@@ -56,6 +56,7 @@ const ChatbotGetNextQuestionOutputSchema = z.object({
   nextQuestion: z.string().describe('The next question to ask the user to collect the remaining information.'),
   isComplete: z.boolean().describe('Whether all necessary information has been collected.'),
   updatedData: ChatbotAppointmentBookingInputSchema.partial(),
+  suggestions: z.array(z.string()).optional().describe('A list of suggested replies for the user.'),
 });
 
 
@@ -93,7 +94,7 @@ You need to collect the following information:
 - Patient Name (patientName)
 - Phone Number (phoneNumber)
 - Medical Problem/Concern (problem)
-- Preferred Time Slot (preferredTimeSlot)
+- Preferred Time Slot (preferredTimeSlot) - This should include date and time.
 
 Current collected data:
 {{{json currentData}}}
@@ -107,6 +108,9 @@ Based on the history and current data, determine the next logical question to as
 If you have just collected a piece of information, acknowledge it briefly and naturally before asking the next question.
 If the user provides multiple pieces of information at once, update all of them.
 Extract the relevant information from the user's last message and update the 'updatedData' field.
+
+When asking for the 'preferredTimeSlot', first ask for the time. Provide the following suggestions in the 'suggestions' field: "9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM".
+Once the user selects a time, update the 'preferredTimeSlot' with their choice and then ask them for the date. Do not provide suggestions for the date.
 
 If all information is collected, set 'isComplete' to true and set 'nextQuestion' to a summary of the collected details, asking for confirmation. For example: "Great, I have all the details. I've got your name as John Doe, phone as 555-1234, reason for visit as 'sore throat', and preferred time as 'tomorrow at 2pm'. Can I go ahead and book this?"
 
