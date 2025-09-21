@@ -50,7 +50,8 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                 setIsLoading(false);
             }
         } else {
-            setAppointments(localAppointments);
+            // Get last 5 appointments from local storage for the home page
+            setAppointments(localAppointments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5));
             setIsLoading(false);
         }
     }
@@ -97,7 +98,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
   if (isLoading) {
     return (
       <div>
-        <h2 className="text-2xl font-bold mb-4">Appointment History</h2>
+        <h2 className="text-3xl font-bold mb-6">Appointment History</h2>
         <div className="space-y-2">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -109,7 +110,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Recent Appointments</h2>
+      <h2 className="text-3xl font-bold mb-6">{isAdmin ? 'Recent Appointments' : 'Appointment History'}</h2>
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
         <Table>
           <TableHeader>
@@ -145,7 +146,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                    {isAdmin && (
                     <TableCell>
                       <Badge
-                        className={cn({
+                        className={cn('capitalize', {
                           'bg-green-100 text-green-800 hover:bg-green-200': appt.status === 'appointed',
                           'bg-yellow-100 text-yellow-800 hover:bg-yellow-200': appt.status === 'on hold',
                           'bg-gray-100 text-gray-800 hover:bg-gray-200': appt.status === 'pending',
@@ -155,7 +156,7 @@ export function AppointmentHistoryTable({isAdmin = false}) {
                       </Badge>
                     </TableCell>
                   )}
-                  <TableCell>{appt.bookedVia || 'N/A'}</TableCell>
+                  <TableCell className="capitalize">{appt.bookedVia || 'N/A'}</TableCell>
                   {isAdmin && (
                     <TableCell className="text-right">
                        <DropdownMenu>

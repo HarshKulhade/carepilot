@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
@@ -168,8 +167,8 @@ export function Chatbot() {
     <Card className="w-full h-full mx-auto flex flex-col shadow-lg rounded-xl">
       <CardHeader className="p-0 border-b">
          <Tabs defaultValue="chat" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 rounded-t-xl rounded-b-none h-14">
-                <TabsTrigger value="chat" className="rounded-tl-xl text-base h-full">Chat</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-t-xl rounded-b-none h-14 bg-slate-100">
+                <TabsTrigger value="chat" className="rounded-tl-xl text-base h-full data-[state=active]:bg-card data-[state=active]:shadow-none">Chat</TabsTrigger>
                 <TabsTrigger value="voice" className="rounded-tr-xl text-base h-full" disabled>Voice</TabsTrigger>
             </TabsList>
             <div className="p-4 flex items-center justify-between">
@@ -182,7 +181,7 @@ export function Chatbot() {
          </Tabs>
       </CardHeader>
       <CardContent className="flex-1 p-0 overflow-hidden">
-        <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 400px)', minHeight: '300px'}}>
+        <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 450px)', minHeight: '300px'}}>
           <div className="space-y-4">
             {messages.map((message) => (
               <div key={message.id}>
@@ -238,7 +237,7 @@ export function Chatbot() {
             placeholder="Enter your message..."
             disabled={isTyping || messages.length === 0}
             aria-label="Chat input"
-            className="border-gray-300 focus-visible:ring-primary"
+            className="border-gray-300 focus-visible:ring-primary bg-white"
           />
           <Button type="submit" size="icon" disabled={isTyping || !userInput.trim()}>
             <Send className="h-4 w-4" />
