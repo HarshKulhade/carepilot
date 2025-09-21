@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
@@ -181,7 +182,7 @@ export function Chatbot() {
          </Tabs>
       </CardHeader>
       <CardContent className="flex-1 p-0 overflow-hidden">
-        <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 400px)', minHeight: '300px'}}>
+        <div className="h-full p-4 overflow-y-auto" ref={scrollAreaRef} style={{maxHeight: 'calc(100vh - 300px)', minHeight: '300px'}}>
           <div className="space-y-4">
             {messages.map((message) => (
               <div key={message.id}>
@@ -194,7 +195,7 @@ export function Chatbot() {
                   </div>
                 </div>
                 {message.suggestions && message.suggestions.length > 0 && (
-                  <div className="flex justify-start gap-2 mt-2">
+                  <div className="flex justify-start flex-wrap gap-2 mt-2">
                     {message.suggestions.map((suggestion, index) => (
                       <Button
                         key={index}

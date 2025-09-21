@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -48,7 +49,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+    <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-4">
       <Card className="w-full max-w-sm">
         <form onSubmit={handleLogin}>
           <CardHeader>
