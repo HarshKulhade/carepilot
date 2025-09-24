@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, getDoc, doc, query, orderBy, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, doc, query, orderBy, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import type { Appointment } from './types';
 
 const APPOINTMENTS_COLLECTION = 'appointments';
@@ -71,5 +71,28 @@ export async function updateAppointmentStatus(id: string, status: Appointment['s
     } catch (e) {
         console.error("Error updating document:", e);
         throw new Error("Could not update appointment status.");
+    }
+}
+
+// Clear all appointments from the database
+export async function clearAllAppointments(): Promise<void> {
+    try {
+        const appointmentsCollection = collection(db, APPOINTMENTS_COLLECTION);
+        const querySnapshot = await getDocs(appointmentsCollection);
+
+        if (querySnapshot.empty) {
+            return; // Nothing to delete
+        }
+        
+        const batch = writeBatch(db);
+        querySnapshot.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+
+    } catch (e) {
+        console.error("Error clearing collection:", e);
+        throw new Error("Could not clear appointment history.");
     }
 }
