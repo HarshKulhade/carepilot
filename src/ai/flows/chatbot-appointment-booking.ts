@@ -212,11 +212,14 @@ const chatbotAppointmentPrompt = ai.definePrompt({
   {{/if}}
 
   The user has confirmed these details. Now, book the appointment.
+  
+  **IMPORTANT**: From the "Problem/Concern", extract the main medical issue. For example, if the user said "I have a really bad headache and I feel dizzy", the main problem is "headache and dizziness". If they said "I think I sprained my ankle playing soccer", the main problem is "sprained ankle".
+
   Generate a unique appointment ID (e.g., a random alphanumeric string like 'appt-xyz123').
   
-  If it's an emergency, the confirmation message should be reassuring and clear. For example: "Your emergency appointment for {{{problem}}} has been registered. Please proceed to the clinic immediately. We will be expecting you. Your Appointment ID is [Generated ID]."
+  If it's an emergency, the confirmation message should be reassuring and clear. Use the summarized main problem. For example: "Your emergency appointment for [summarized main problem] has been registered. Please proceed to the clinic immediately. We will be expecting you. Your Appointment ID is [Generated ID]."
 
-  For regular appointments, return a friendly and professional confirmation message. For example: "Your appointment for {{{problem}}} is confirmed for {{{preferredTimeSlot}}}. We will contact you at {{{phoneNumber}}} if there are any changes. Your Appointment ID is [Generated ID]."
+  For regular appointments, return a friendly and professional confirmation message. Use the summarized main problem. For example: "Your appointment for [summarized main problem] is confirmed for {{{preferredTimeSlot}}}. We will contact you at {{{phoneNumber}}} if there are any changes. Your Appointment ID is [Generated ID]."
 `,
 });
 
