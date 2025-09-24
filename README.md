@@ -44,7 +44,7 @@ To get a local copy up and running, follow these simple steps.
 
 1.  **Clone the repository**:
     ```sh
-    git clone https://github.com/your-username/carepilot.git
+    git clone https://github.com/HarshKulhade/carepilot.git
     cd carepilot
     ```
 
@@ -68,4 +68,4 @@ The application will be available at `http://localhost:9002`.
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/your-username/carepilot/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/HarshKulhade/carepilot/issues).
