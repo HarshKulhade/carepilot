@@ -160,6 +160,7 @@ export function Chatbot() {
     } else {
         addMessage('assistant', "No problem. Let's start over. What is your full name?");
         setFormData({});
+        setIsTyping(false);
     }
   }
 
