@@ -89,10 +89,11 @@ export async function getNextQuestion(input: z.infer<typeof ChatbotGetNextQuesti
     if (input.currentData.problem && input.currentData.preferredTimeSlot && !ALL_TIME_SLOTS.some(slot => input.currentData.preferredTimeSlot!.includes(slot))) {
         try {
             const allAppointments = await getAppointments();
-            const providedDate = new Date(input.currentData.preferredTimeSlot).toDateString();
+            const providedDateStr = new Date(input.currentData.preferredTimeSlot).toDateString();
+            const isToday = new Date(providedDateStr).toDateString() === new Date().toDateString();
 
             const bookedSlots = allAppointments
-                .filter(appt => new Date(appt.preferredTimeSlot).toDateString() === providedDate)
+                .filter(appt => new Date(appt.preferredTimeSlot).toDateString() === providedDateStr)
                 .map(appt => {
                     // Extract time part from "2:00 PM on Wed Jul 10 2024"
                     const match = appt.preferredTimeSlot.match(/(\d{1,2}:\d{2}\s[AP]M)/);
@@ -101,8 +102,26 @@ export async function getNextQuestion(input: z.infer<typeof ChatbotGetNextQuesti
                 .filter((slot): slot is string => slot !== null);
 
 
-            const availableSlots = ALL_TIME_SLOTS.filter(slot => !bookedSlots.includes(slot));
+            let availableSlots = ALL_TIME_SLOTS.filter(slot => !bookedSlots.includes(slot));
+
+            // If the appointment is for today, filter out past time slots
+            if (isToday) {
+                const now = new Date();
+                availableSlots = availableSlots.filter(slot => {
+                    const [time, modifier] = slot.split(' ');
+                    let [hours, minutes] = time.split(':').map(Number);
+                    if (modifier === 'PM' && hours < 12) hours += 12;
+                    if (modifier === 'AM' && hours === 12) hours = 0;
+
+                    const slotTime = new Date();
+                    slotTime.setHours(hours, minutes, 0, 0);
+
+                    return slotTime > now; // Only include slots in the future
+                });
+            }
+
             context.availableSlots = availableSlots;
+
         } catch (error) {
             console.error("Failed to fetch appointments to check for available slots:", error);
             // If we can't check for slots, we can't proceed with booking for a specific day.
@@ -175,8 +194,9 @@ Specific Question Flow:
 - If a DATE has just been collected (and is now in 'preferredTimeSlot'):
   - Acknowledge the date.
   - Now, ask for the TIME.
-  - Use the 'availableSlots' from the context to suggest available times. For example: "Great, for [Date], we have the following times available: [list of slots]. Which one works for you?"
-  - Set the 'suggestions' field in your output to the 'availableSlots' from the context.
+  - If there are available slots in the context, use them. For example: "Great, for [Date], we have the following times available: [list of slots]. Which one works for you?"
+  - If there are no available slots, say: "I'm sorry, but there are no available appointments for that day. Please choose another date." and unset preferredTimeSlot.
+  - Set the 'suggestions' field in your output to the 'availableSlots' from the context if they exist.
   Context with available slots: {{{json context}}}
 
 - If the user selects a time from the suggestions:
